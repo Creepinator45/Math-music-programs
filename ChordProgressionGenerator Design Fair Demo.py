@@ -7,24 +7,60 @@ from itertools import permutations, combinations, zip_longest
 from fractions import Fraction
 import matplotlib.pyplot as plt
 import math
-from matplotlib.widgets import Button, Slider
+from matplotlib.widgets import Button, Slider, TextBox
+import matplotlib as mpl
 
 s = scamp.Session()
 instrument = s.new_part("Square wave")
 
 maxDenom = 160
 
-
+#Input: List of frequencies
+#Output: value between 0 and 1, 1 is most dissonant, 0 is most harmonious 
 def ChordDissonance(notes: list[float]) -> float:
-    totalDissonance = 0
-    for interval in permutations(notes, 2):
-        dyad = Fraction.from_float(interval[0]/interval[1]).limit_denominator(maxDenom * maxDenom).as_integer_ratio()
-        totalDissonance += pow(barlicity.harmonicity(dyad[0], dyad[1]),2)
-    return totalDissonance
+    match metricAx.text:
+        case "Harmonicity":
+            totalDissonance = 0
+            numIntervals = 0
+            for interval in permutations(notes, 2):
+                dyad = Fraction.from_float(interval[0]/interval[1]).limit_denominator(maxDenom * maxDenom).as_integer_ratio()
+                #Harmonicity takes 2 frequencies in simplist form, and outputs a value from 0 to 1 where 0 is most dissonant and 1 is most harmonious. octave is 1, fifth is 0.375, unison is inf, values can be negative
+                currentDissonance = abs(barlicity.harmonicity(dyad[0], dyad[1]))
+                if math.isinf(currentDissonance):
+                    currentDissonance = 1
+                totalDissonance += currentDissonance
+                numIntervals += 1
+            return totalDissonance/numIntervals
+            
+        case "Harmonicity Squared":
+            totalDissonance = 0
+            numIntervals = 0
+            for interval in permutations(notes, 2):
+                dyad = Fraction.from_float(interval[0]/interval[1]).limit_denominator(maxDenom * maxDenom).as_integer_ratio()
+                #Harmonicity takes 2 frequencies in simplist form, and outputs a value from 0 to 1 where 0 is most dissonant and 1 is most harmonious. octave is 1, fifth is 0.375, unison is inf, values can be negative
+                currentDissonance = pow(barlicity.harmonicity(dyad[0], dyad[1]))
+                if math.isinf(currentDissonance):
+                    currentDissonance = 1
+                totalDissonance += currentDissonance
+                numIntervals += 1
+            return totalDissonance/numIntervals
 
-def Cost(chordProgression: list[float], idealDissonances: list[float], degree: int = 3, ) -> float:
+        case "Denominators":
+            pass
+
+        case "Denominators Squared":
+            pass
+
+        case "Harmonics":
+            pass
+        
+        case "Harmonics Squared":
+            pass
+    
+def Cost(chordProgression: list[float], idealDissonances: list[float], degree: int = 3, dissonanceMetric: str = "Harmonicity") -> float:
+
     dissonanceCoeffecient = 1
-    distanceCoeffecient = 0.0000001
+    distanceCoeffecient = 0.000000000001
 
     if len(chordProgression)/degree != len(idealDissonances):
         raise Exception("number of chords in chord progression doesn't match number if dissonances specified")
@@ -58,13 +94,15 @@ def Cost(chordProgression: list[float], idealDissonances: list[float], degree: i
 iteration = 0
 def PrintStatus(result):
     global iteration    
-    print("iteration")
-    print(iteration)
-    print(result)
+    if iteration % 50 == 0:
+        print("iteration")
+        print(iteration)
+        print(result)
     iteration += 1
 
-
-#GUI
+#region slider setup
+mpl.rcParams['toolbar'] = 'None'
+#GUI, modified from https://matplotlib.org/stable/gallery/widgets/slider_demo.html
 max_dissonance = 1
 min_dissonance = 0
 
@@ -77,6 +115,7 @@ init_dissonance5 = min_dissonance
 
 # Create the figure and the line that we will manipulate
 fig, ax = plt.subplots()
+ax.set_title("Desired Dissonance")
 line, = ax.plot([0,1,2,3,4], [init_dissonance1, init_dissonance2, init_dissonance3, init_dissonance4, init_dissonance5], lw=2)
 
 # adjust the main plot to make room for the sliders
@@ -151,18 +190,38 @@ dis_slider3.on_changed(update)
 dis_slider4.on_changed(update)
 dis_slider5.on_changed(update)
 
-# Create a `matplotlib.widgets.Button` to reset the sliders to initial values.
+# Create a `matplotlib.widgets.Button` to generate a chord progression based on slider values.
 generateAx = fig.add_axes([0.8, 0.025, 0.1, 0.04])
 button = Button(generateAx, 'Generate', hovercolor='0.975')
 
-def generate(event):
-    idealDissonances = [dis_slider1.val, dis_slider2.val, dis_slider3.val, dis_slider4.val, dis_slider5.val]
+# Create a 'matplotlib.widgets.TextBox' to select a dissonance metric
+metricAx = fig.add_axes([0.5, 0.025, 0.25, 0.04])
+text_box = TextBox(metricAx, "Dissonance Metric", initial="Harmonicity")
 
-    idealHarmonicity = [i for i in idealDissonances]
-    startingValueRange = (50, 50+24)
+#endregion
+
+def generate(event):
+    doPlayEvolution = False
+
+    global iteration
+    iteration = 0
+    idealDissonances = [dis_slider1.val, dis_slider2.val, dis_slider3.val, dis_slider4.val, dis_slider5.val]
+    
+    startingValueRange = (70, 70+24)
     startingValues = np.random.random(15) * (startingValueRange[0]-startingValueRange[1]) + startingValueRange[0]
+
+    if doPlayEvolution:
+        result = [(Fraction.from_float(note).limit_denominator(maxDenom)) for note in startingValues]
+        result = [note.numerator/note.denominator for note in result]
+
+        instrument.play_note(None, 1.0, 2.0)
+        for i in range(5):
+            chord = [result[i*3 + j] for j in range(3)]
+            print(chord)
+            instrument.play_chord(chord, 1.0, 2.0)
+
     print(startingValues)
-    progression = optimize.minimize(Cost, startingValues, idealHarmonicity, method="nelder-mead", callback=PrintStatus)
+    progression = optimize.minimize(Cost, startingValues, idealDissonances, method="nelder-mead", callback=PrintStatus)
 
     print(progression)
 

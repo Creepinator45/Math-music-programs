@@ -78,7 +78,7 @@ def PrintStatus(result):
     
 
 
-startingValues = np.array([50, 54, 57, 50, 55, 100, 52, 55, 59, 52, 57, 61, 50, 54, 57])
+startingValues = np.array([50, 54, 57, 50, 55, 58, 52, 55, 59, 52, 57, 61, 50, 54, 57])
 startingValues = np.random.random(15) + startingValues
 PrintStatus(startingValues)
 idealDissonances = [0, 5, 100, 0, 0]
