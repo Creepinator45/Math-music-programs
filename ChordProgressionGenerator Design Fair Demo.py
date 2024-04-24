@@ -17,8 +17,8 @@ maxDenom = 160
 
 #Input: List of frequencies
 #Output: value between 0 and 1, 1 is most dissonant, 0 is most harmonious 
-def ChordDissonance(notes: list[float]) -> float:
-    match metricAx.text:
+def ChordDissonance(notes: list[float], metric: str = "Harmonicity") -> float:
+    match metric:
         case "Harmonicity":
             totalDissonance = 0
             numIntervals = 0
@@ -30,7 +30,7 @@ def ChordDissonance(notes: list[float]) -> float:
                     currentDissonance = 1
                 totalDissonance += currentDissonance
                 numIntervals += 1
-            return totalDissonance/numIntervals
+            return -(totalDissonance/5)+1
             
         case "Harmonicity Squared":
             totalDissonance = 0
@@ -38,12 +38,12 @@ def ChordDissonance(notes: list[float]) -> float:
             for interval in permutations(notes, 2):
                 dyad = Fraction.from_float(interval[0]/interval[1]).limit_denominator(maxDenom * maxDenom).as_integer_ratio()
                 #Harmonicity takes 2 frequencies in simplist form, and outputs a value from 0 to 1 where 0 is most dissonant and 1 is most harmonious. octave is 1, fifth is 0.375, unison is inf, values can be negative
-                currentDissonance = pow(barlicity.harmonicity(dyad[0], dyad[1]))
+                currentDissonance = pow(barlicity.harmonicity(dyad[0], dyad[1]), 2)
                 if math.isinf(currentDissonance):
                     currentDissonance = 1
                 totalDissonance += currentDissonance
                 numIntervals += 1
-            return totalDissonance/numIntervals
+            return -(totalDissonance/4.5)+1
 
         case "Denominators":
             pass
@@ -60,7 +60,7 @@ def ChordDissonance(notes: list[float]) -> float:
 def Cost(chordProgression: list[float], idealDissonances: list[float], degree: int = 3, dissonanceMetric: str = "Harmonicity") -> float:
 
     dissonanceCoeffecient = 1
-    distanceCoeffecient = 0.000000000001
+    distanceCoeffecient = 0.00000000001
 
     if len(chordProgression)/degree != len(idealDissonances):
         raise Exception("number of chords in chord progression doesn't match number if dissonances specified")
@@ -74,7 +74,7 @@ def Cost(chordProgression: list[float], idealDissonances: list[float], degree: i
     totalDissonanceCost = 0
     for i in range(len(idealDissonances)):
         chord = [chordProgression[i*degree + j] for j in range(degree)]
-        totalDissonanceCost += pow(ChordDissonance(chord) - idealDissonances[i], 2)
+        totalDissonanceCost += pow(ChordDissonance(chord, metric=dissonanceMetric) - idealDissonances[i], 2)
 
     #calculate distance notes move from their previous chord
     totalDistanceCost = 0
@@ -207,8 +207,10 @@ def generate(event):
     iteration = 0
     idealDissonances = [dis_slider1.val, dis_slider2.val, dis_slider3.val, dis_slider4.val, dis_slider5.val]
     
-    startingValueRange = (70, 70+24)
-    startingValues = np.random.random(15) * (startingValueRange[0]-startingValueRange[1]) + startingValueRange[0]
+    #startingValueRange = (70, 70+24)
+    #startingValues = np.random.random(15) * (startingValueRange[0]-startingValueRange[1]) + startingValueRange[0]
+    startingValues = np.array([50, 50+7, 50+12] * 5)
+    print(startingValues)
 
     if doPlayEvolution:
         result = [(Fraction.from_float(note).limit_denominator(maxDenom)) for note in startingValues]
@@ -221,7 +223,7 @@ def generate(event):
             instrument.play_chord(chord, 1.0, 2.0)
 
     print(startingValues)
-    progression = optimize.minimize(Cost, startingValues, idealDissonances, method="nelder-mead", callback=PrintStatus)
+    progression = optimize.minimize(Cost, startingValues, (idealDissonances, 3, text_box.text), method="nelder-mead", callback=PrintStatus)
 
     print(progression)
 

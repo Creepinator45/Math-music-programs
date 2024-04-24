@@ -12,7 +12,7 @@ s = Session()
 instrument = s.new_part("Square wave")
 
 def calculate_chords():
-    chords = [[1]+[1+1/j for j in i] for i in combinations(range(1,20), 2)]
+    chords = [[1]+[1+1/j for j in i] for i in combinations(range(1,20), 1)]
     current_pitch = 200
 
     chord_data = {"chord":[], "clean_chord":[], "pitches":[], "intervals":[],
@@ -110,7 +110,7 @@ def calculate_chords():
                 
         chord_data["harmonicity_chord"].append(harmonicity_chord)
 
-        sum_harmonicity_chord = sum(harmonicity_chord)
+        sum_harmonicity_chord = sum(map(abs, harmonicity_chord))
         chord_data["sum_harmonicity_chord"].append(sum_harmonicity_chord)
 
         sum_squared_harmonicity_chord = sum([pow(dyad,2) for dyad in harmonicity_chord])
@@ -124,13 +124,8 @@ def calculate_chords():
 
     return chord_data
 
-chord_data = calculate_chords()
-print(chord_data)
-chord_data.sort_values(by=["sum_harmonicity_intervals"], inplace=True, ascending=False)
 
-print("playing chords")
-
-
+#region
 # for interval in [1+1/2, 1+2/3, 1+3/4, 1+8/9, 1+4/5, 1+3/5, 1+9/16, 1+5/8, 1+5/6, 1+5/9, 1+16/27, 1+8/15, 1+4/7, 1+9/10, 1+27/32, 1+15/16, 1+7/8, 1+6/7, 1+7/12, 1+7/9, 1+20/27, 1+9/14, 1+64/81]:
 #     print(interval)
 #     instrument.play_chord([hertz_to_midi(200), hertz_to_midi(200*interval)], 1.0, 4.0)
@@ -146,8 +141,21 @@ print("playing chords")
 #     instrument.play_chord([hertz_to_midi(200), hertz_to_midi(200*interval[0])], 1.0, 4.0)
 #     instrument.play_chord([hertz_to_midi(200), hertz_to_midi(200*interval[1])], 1.0, 4.0)
 #     instrument.play_note(None, 1.0, 4.0)
-    
+#endregion    
 
-for index, data in chord_data.iterrows():
-    print(data)
-    instrument.play_chord([hertz_to_midi(i) for i in data["pitches"]], 1.0, 4.0)
+metric = "max_harmonicity_chord"
+chord_data = calculate_chords()
+print(chord_data)
+chord_data.sort_values(by=[metric], inplace=True, ascending=False)
+
+print("playing chords")
+for i, (index, data) in zip(range(30), chord_data.iterrows()):
+    print("1, "+str(data["clean_chord"][1][0])+"/"+str(data["clean_chord"][1][1])+", "+str(data["clean_chord"][2][0])+"/"+str(data["clean_chord"][2][1]))
+    #print(i)
+    #print(data[metric])
+    #instrument.play_chord([hertz_to_midi(i) for i in data["pitches"]], 1.0, 4.0)
+for i, (index, data) in zip(range(30), chord_data.iterrows()):
+    #print("1, "+str(data["clean_chord"][1][0])+"/"+str(data["clean_chord"][1][1])+", "+str(data["clean_chord"][2][0])+"/"+str(data["clean_chord"][2][1]))
+    #print(i)
+    print(data[metric])
+    #instrument.play_chord([hertz_to_midi(i) for i in data["pitches"]], 1.0, 4.0)
