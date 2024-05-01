@@ -23,9 +23,9 @@ for i in range(1, len(f)-1):
 sigma = 0.007
 all = np.linspace(0, 1, 1000)
 p = np.zeros(all.shape, dtype=complex)
-for x, i in zip(all, range(0, len(all))):
-    for j in range(0, len(f)):
-        pp = df[j]*np.exp((-0.5/sigma**2)*(f[j]- x)**2)/np.sqrt(2*np.pi*sigma)
+for i, x in enumerate(all):
+    for w, v in zip(df, f):
+        pp = w * np.exp((-0.5/sigma**2)*(v - x)**2)/np.sqrt(2*np.pi*sigma)
         if pp != 0:
             p[i] = p[i] + pp*np.emath.log(pp)
 he=-p
