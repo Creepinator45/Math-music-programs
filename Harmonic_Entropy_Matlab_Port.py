@@ -3,6 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import optimize
 
+def Calculate(ratio: float) -> float:
+    out = 0
+    for w, v in zip(df, f):
+        pp = w * np.exp((-0.5/sigma**2)*(v - ratio)**2)/np.sqrt(2*np.pi*sigma)
+        if pp != 0:
+            out = out + pp*np.emath.log(pp)
+    return 1 - np.abs(out)
+
 #generate Farey series of order n
 f = [1]
 for n in range(1, 51):
@@ -22,13 +30,9 @@ for i in range(1, len(f)-1):
 #calculate entropy
 sigma = 0.007
 all = np.linspace(0, 1, 1000)
-p = np.zeros(all.shape, dtype=complex)
+he = np.zeros(all.shape, dtype=complex)
 for i, x in enumerate(all):
-    for w, v in zip(df, f):
-        pp = w * np.exp((-0.5/sigma**2)*(v - x)**2)/np.sqrt(2*np.pi*sigma)
-        if pp != 0:
-            p[i] = p[i] + pp*np.emath.log(pp)
-he=-p
+    he[i] = Calculate(x)
 
-plt.plot(all, 1-np.abs(he))
+plt.plot(all, he)
 plt.show()
